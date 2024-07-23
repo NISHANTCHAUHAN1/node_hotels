@@ -49,9 +49,13 @@
 const express = require("express");
 const app = express();
 const db = require("./db");
+require('dotenv').config();
+
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.json());
+
+const PORT = process.env.PORT || 3000;
 
 app.get("/", function (req, res) {
   res.send("Hello welcome");
@@ -65,7 +69,6 @@ const menuItemsRoute = require('./routes/menuitemsRoutes');
 app.use('/person', personRoute)
 app.use('/menuitems', menuItemsRoute);
 
-app.listen(3000);
-
-// git branch -M main
-// git push -u origin main
+app.listen(PORT, () => {
+  console.log('listening on port 3000');
+});
