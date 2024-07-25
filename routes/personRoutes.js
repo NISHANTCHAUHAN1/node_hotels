@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Person = require('../models/Person');
+const {jwtAuthMiddleware, generateToken} = require('./../jwt');
 
 
 
-router.post('/', async (req, res) => {
+router.post('/signup', async (req, res) => {
     try {
       const data = req.body;
   
@@ -14,14 +15,63 @@ router.post('/', async (req, res) => {
       // save the newperson to the database
       const response = await newPerson.save();
       console.log("data saved");
-      res.status(200).json(response);
+
+      const payload = {
+        id: response.id,
+        username: response.username
+      }
+
+      console.log(JSON.stringify(payload));
+
+      const token = generateToken(payload)
+      console.log("token is ", token);
+      res.status(200).json({response: response, token: token});
+
     } catch (error) {
       console.log(error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  router.get("/", async (req, res) => {
+  //Login Route
+  router.post('/login', async(req,res) => {
+    try {
+      const {username, password} = req.body;
+      const user = await Person.findOne({username: username});
+
+      if(!user || !(await user.comparePassword(password))) {
+        return res.status(401).json({error: "Invaild username or password"});
+      }
+      // generate token
+      const payload = {
+        id: user.id,
+        username: user.username,
+      }
+      const token = generateToken(payload);
+      res.json({token})
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({error: "Internal Server Error"})
+    }
+  })
+
+  // Profile route
+  router.get('/profile', jwtAuthMiddleware, async (req,res) => {
+    try {
+      const userData = req.user;
+      console.log("userData: ", userData);
+
+      const userId = userData.id;
+      const user = await Person.findById(userId);
+
+      res.status(200).json({user});
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({error: "Invaild Server Error"})
+    }
+  })
+
+  router.get("/",jwtAuthMiddleware, async (req, res) => {
     try {
       const data = await Person.find();
       console.log("data fetched");
